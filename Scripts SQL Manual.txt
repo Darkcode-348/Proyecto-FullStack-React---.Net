@@ -1,0 +1,250 @@
+CREATE TABLE Persona (
+    PersonaId INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Genero NVARCHAR(10) NOT NULL,
+    Edad NVARCHAR(2) NOT NULL,
+    Identificacion NVARCHAR(10) NOT NULL,
+    Direccion NVARCHAR(200) NULL,
+    Telefono NVARCHAR(10) NULL
+);
+
+CREATE TABLE Cliente (
+    ClienteId INT PRIMARY KEY IDENTITY(1,1),
+    PersonaId INT NOT NULL,
+    Contraseña NVARCHAR(100) NOT NULL,
+    Estado bit NOT NULL,
+    FOREIGN KEY (PersonaId) REFERENCES Persona(PersonaId)
+);
+
+
+CREATE TABLE Cuenta (
+    CuentaId INT PRIMARY KEY IDENTITY(1,1),
+    NumeroCuenta NVARCHAR(10) NOT NULL,
+    TipoCuenta NVARCHAR(10) NOT NULL,
+    SaldoInicial DECIMAL(10, 2) NOT NULL,
+    Estado bit NOT NULL,
+    CONSTRAINT UQ_Cuenta_NumeroCuenta UNIQUE (NumeroCuenta)
+);
+
+CREATE TABLE Movimientos (
+    MovimientoId INT PRIMARY KEY IDENTITY(1,1),
+    Fecha DATETIME NOT NULL,
+    TipoMovimiento NVARCHAR(50) NOT NULL,
+    Valor DECIMAL(10, 2) NOT NULL,
+    Saldo DECIMAL(10, 2) NOT NULL,
+    CONSTRAINT UQ_Movimientos_MovimientoId UNIQUE (MovimientoId)
+);
+
+
+
+
+
+
+// procedure 
+
+// Listar Datos Persona/Cliente
+
+
+create proc ListarPersonas
+as
+begin
+SELECT Identificacion ,Nombre , Direccion, Telefono, Edad, estado FROM Persona AS P
+JOIN Cliente AS C ON P.PersonaId = C.PersonaId;
+end
+
+
+// Registrar Persona / Cliente
+
+CREATE PROCEDURE RegistrarPersona
+    @Nombre NVARCHAR(100),
+    @Genero NVARCHAR(10),
+    @Edad NVARCHAR(2),
+    @Identificacion VARCHAR(10),
+    @Direccion NVARCHAR(200),
+    @Telefono NVARCHAR(10),
+    @Contraseña VARCHAR(100),
+    @Estado BIT
+AS
+BEGIN
+    -- Declarar la variable de salida @Personaid
+    DECLARE @Personaid INT;
+
+    -- Verificar si la identificación ya existe
+    IF EXISTS (SELECT 1 FROM Persona WHERE Identificacion = @Identificacion)
+    BEGIN
+        -- La identificación ya existe, lanzar un mensaje de error o una excepción
+        RAISERROR ('La identificación ya está registrada', 16, 1);
+        RETURN; -- Salir del procedimiento sin realizar la inserción
+    END
+
+    -- Insertar en la tabla Persona
+    INSERT INTO Persona (Nombre, Genero, Edad, Identificacion, Telefono, Direccion)
+    VALUES (@Nombre, @Genero, @Edad, @Identificacion, @Telefono, @Direccion);
+
+    -- Obtener el Personaid generado en la inserción
+    SET @Personaid = SCOPE_IDENTITY();
+
+    -- Insertar en la tabla Cliente con el Personaid relacionado
+    INSERT INTO Cliente (Personaid, Contraseña, Estado)
+    VALUES (@Personaid, @Contraseña, @Estado);
+
+    -- Imprimir el valor del Personaid recién insertado (opcional)
+    PRINT 'Personaid insertado: ' + CAST(@Personaid AS VARCHAR(10));
+END
+
+
+
+// LISTAR CUENTAS
+
+CREATE PROCEDURE ListarCuentas
+AS
+BEGIN
+SELECT 
+    cu.NumeroCuenta, 
+    cu.TipoCuenta,
+    cu.SaldoInicial,
+    ISNULL(mo.Saldo, 0) AS Saldo,
+    cu.Estado,
+    pe.Nombre AS 'cliente'
+FROM Cuenta cu
+LEFT JOIN Movimientos mo ON mo.NumeroCuenta = cu.NumeroCuenta
+JOIN Cliente cl ON cu.ClienteId = cl.ClienteId
+JOIN Persona pe ON cl.PersonaId = pe.PersonaId;
+
+END
+
+
+
+
+// Buscar por identificacion
+
+CREATE PROCEDURE BuscarporIdentificacion
+@identificacion nvarchar(10)
+AS
+BEGIN
+  SELECT 
+    pe.Nombre,
+    cl.ClienteId
+FROM Persona pe
+JOIN Cliente cl ON pe.PersonaId = cl.PersonaId
+WHERE pe.Identificacion = @identificacion;
+
+END
+
+
+// proce para Registrar Cuenta
+
+CREATE PROC RegistrarCuenta
+@NumeroCuenta nvarchar(10),
+@TipoCuenta nvarchar(10),
+@SaldoInicial decimal(10,2),
+@Estado bit,
+@ClienteId int
+AS
+BEGIN
+    -- Verificar si el número de cuenta ya existe
+    IF EXISTS (SELECT 1 FROM Cuenta WHERE NumeroCuenta = @NumeroCuenta)
+    BEGIN
+        -- El número de cuenta ya existe, lanzar un mensaje de error o una excepción
+        RAISERROR ('El número de cuenta ya existe', 16, 1);
+        RETURN; -- Salir del procedimiento sin realizar la inserción
+    END
+
+    -- Si el número de cuenta no existe, proceder a la inserción
+    INSERT INTO Cuenta (NumeroCuenta, TipoCuenta, SaldoInicial, Estado, ClienteId)
+    VALUES (@NumeroCuenta, @TipoCuenta, @SaldoInicial, @Estado, @ClienteId);
+END
+
+// ListarMovimiento
+
+
+create proc ListarMovimientos
+as
+begin
+SELECT
+    m.Fecha,
+    cu.NumeroCuenta,
+    pe.Nombre as 'Titular',
+    cu.TipoCuenta,
+    cu.SaldoInicial,
+    cu.Estado,
+    m.TipoMovimiento,
+	CONCAT(m.TipoMovimiento, ' de ', m.Valor) AS Movimiento,
+    m.Valor,
+    CASE
+        WHEN m.TipoMovimiento = 'Deposito' THEN cu.SaldoInicial + m.Valor
+        WHEN m.TipoMovimiento = 'Retiro' THEN cu.SaldoInicial - m.Valor
+    END AS SaldoDisponible
+FROM
+    Movimientos m
+	Join Cuenta cu ON cu.NumeroCuenta = m.NumeroCuenta 
+    JOIN Cliente cl ON cu.ClienteId = cl.ClienteId
+    JOIN Persona pe ON cl.PersonaId = pe.PersonaId
+end
+
+
+
+// traer datos de la cuenta 
+CREATE PROCEDURE Buscarnumerocuenta
+@numerocuenta nvarchar(10)
+AS
+BEGIN
+
+
+SELECT
+	cu.TipoCuenta,
+	pe.Nombre as 'titular',
+	cu.SaldoInicial,
+	cl.ClienteId,
+	cu.Estado
+
+FROM
+    Cuenta cu
+
+    JOIN Cliente cl ON cu.ClienteId = cl.ClienteId
+    JOIN Persona pe ON cl.PersonaId = pe.PersonaId
+	where @numerocuenta = cu.NumeroCuenta;
+end
+
+
+
+// REGISTRAR TRANSACCIONES
+
+
+ALTER PROCEDURE RegistrarTransaccion
+    @Fecha DATETIME,
+    @NumeroCuenta NVARCHAR(10),
+    @Saldo DECIMAL(10, 2),
+    @TipoMovimiento NVARCHAR(50),
+    @Valor DECIMAL(10, 2)
+AS
+BEGIN
+    -- Declarar variable para almacenar el valor anterior de SaldoInicial
+    DECLARE @SaldoInicialAnterior DECIMAL(10, 2);
+
+    -- Obtener el valor actual de SaldoInicial y almacenarlo en la variable
+    SELECT @SaldoInicialAnterior = SaldoInicial
+    FROM Cuenta
+    WHERE NumeroCuenta = @NumeroCuenta;
+
+    -- Insertar el registro en la tabla de Movimientos con el valor anterior de SaldoInicial
+    INSERT INTO Movimientos (Fecha, NumeroCuenta, Saldo, TipoMovimiento, Valor)
+    VALUES (@Fecha, @NumeroCuenta, @SaldoInicialAnterior, @TipoMovimiento, @Valor);
+
+    -- Actualizar el campo SaldoInicial en la tabla Cuenta
+    IF (@TipoMovimiento = 'Deposito')
+    BEGIN
+        UPDATE Cuenta
+        SET SaldoInicial = SaldoInicial + @Valor
+        WHERE NumeroCuenta = @NumeroCuenta;
+    END
+    ELSE IF (@TipoMovimiento = 'Retiro')
+    BEGIN
+        UPDATE Cuenta
+        SET SaldoInicial = SaldoInicial - @Valor
+        WHERE NumeroCuenta = @NumeroCuenta;
+    END
+END
+
+
+

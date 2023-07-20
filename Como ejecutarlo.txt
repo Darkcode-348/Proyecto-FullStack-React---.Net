@@ -1,0 +1,7 @@
+
+1- Abrimos el proyecto en vs.
+2- Control-Izq + ñ para abrir la consola.
+3- Usamos la consola de CMD
+4- Escribimos “yarn install”
+5- Y a continuacion escribimos el sgt comando "yarn run dev --host"
+Nos abrira el proyecto y nos da la opcion de abrir en localhost o desde la ip local de la pc.
