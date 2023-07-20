@@ -1,0 +1,32 @@
+/* Notification.css */
+.snackbar {
+    position: fixed;
+    top: 10px; /* Cambiar el valor de bottom a top */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 20px;
+    border-radius: 5px;
+    background-color: #fbd800;
+    color: #20254d;
+    font-size: 20px;
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    opacity: 0.9;
+  }
+  
+
+  /* Notification.css */
+.snackbar-error {
+    position: fixed;
+    top: 10px; /* Cambiar el valor de bottom a top */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 20px;
+    border-radius: 5px;
+    background-color: rgba(255, 0, 0, 0.5);
+    color: #ffff;
+    font-size: 20px;
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    opacity: 0.9;
+  }

@@ -1,0 +1,15 @@
+
+.button {
+    background-color:  #fbd800;;
+    width: 200px;
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: medium;
+    border: none;
+    cursor: pointer;
+    -webkit-box-shadow: 0px 12px 34px -19px rgba(0,0,0,0.75);
+    -moz-box-shadow: 0px 12px 34px -19px rgba(0,0,0,0.75);
+    box-shadow: 0px 12px 34px -19px rgba(0,0,0,0.75);
+}
+
